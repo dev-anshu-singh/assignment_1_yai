@@ -1,0 +1,945 @@
+{
+  "name": "GitHub Star Lead Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "github-star-lead",
+        "options": {
+          "responseCode": {
+            "values": {}
+          },
+          "responseData": "{ \"received\": true }"
+        }
+      },
+      "id": "2a04d0e5-eb1d-4709-bd85-0c1f1185626b",
+      "name": "GitHub Star Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -208,
+        288
+      ],
+      "webhookId": "700d5174-094b-4c1d-bff7-0aefa41bdaef"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "is-created",
+              "leftValue": "={{ $json.body.action }}",
+              "rightValue": "created",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c499e87e-aa55-4d13-a0a2-80b739c89cf1",
+      "name": "Is New Star?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        64,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d1",
+              "name": "delivery_id",
+              "value": "={{ $json.headers['x-github-delivery'] }}",
+              "type": "string"
+            },
+            {
+              "id": "d2",
+              "name": "login",
+              "value": "={{ $json.body.sender.login }}",
+              "type": "string"
+            },
+            {
+              "id": "d3",
+              "name": "repository",
+              "value": "={{ $json.body.repository.full_name }}",
+              "type": "string"
+            },
+            {
+              "id": "d4",
+              "name": "created_at",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "93cbe30d-0d6c-4ad7-b59f-bb86a3e48054",
+      "name": "Extract Star Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        304,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "30X5nCkBoNTsC2ni",
+          "cachedResultName": "github_star_data"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "delivery_id",
+              "keyValue": "={{ $json.delivery_id }}"
+            }
+          ]
+        },
+        "returnAll": true
+      },
+      "id": "b1dc409f-bf2a-4a07-a452-07183c1315cc",
+      "name": "Find Duplicate Delivery",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        528,
+        288
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "no-row",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notExists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "45c97acf-2439-4bd1-aed9-4704de944b94",
+      "name": "Is Not Duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "30X5nCkBoNTsC2ni",
+          "cachedResultName": "github_star_data"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "delivery_id": "={{ $('Extract Star Data').item.json.delivery_id }}",
+            "login": "={{ $('Extract Star Data').item.json.login }}",
+            "status": "processing",
+            "created_at": "={{ $('Extract Star Data').item.json.created_at }}"
+          },
+          "schema": [
+            {
+              "id": "delivery_id",
+              "displayName": "delivery_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "login",
+              "displayName": "login",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0bcd5064-9edb-42c1-bc50-5709cf1b1a75",
+      "name": "Save Processing Delivery",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "r1",
+              "name": "retry_count",
+              "value": "={{ ($json.retry_count || 0) + 1 }}",
+              "type": "number"
+            },
+            {
+              "id": "r2",
+              "name": "login",
+              "value": "={{ $('Extract Star Data').item.json.login }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "79cd1d5b-2fe3-4038-a773-1c1aa282f44d",
+      "name": "Attempt Counter",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1344,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.github.com/users/{{ $json.login }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "githubApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2026-03-10"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-github-lead-tracker"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "b61454d2-0700-451c-94e4-2f150e3c18de",
+      "name": "Get GitHub Profile",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1568,
+        192
+      ],
+      "credentials": {
+        "githubApi": {
+          "id": "e7Z7pJFXkBCA9mZl",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "rate-limited",
+              "leftValue": "={{ $json.statusCode === 429 || ($json.statusCode === 403 && Number($json.headers['x-ratelimit-remaining']) === 0) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "c4c1923f-c2d8-4708-9019-ec41943c2c29",
+      "name": "Is Rate Limited?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1792,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "exhausted",
+              "leftValue": "={{ $('Attempt Counter').item.json.retry_count }}",
+              "rightValue": 4,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0e743e0a-024d-4859-9069-4493e6fae8c6",
+      "name": "Retries Exhausted?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "30X5nCkBoNTsC2ni",
+          "cachedResultName": "github_star_data"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "delivery_id",
+              "keyValue": "={{ $('Extract Star Data').item.json.delivery_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "rate_limited_failed"
+          },
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b952912e-ff5b-49af-9bfe-5ddc7a0f62ef",
+      "name": "Mark Rate Limited Failed",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "w1",
+              "name": "waitSeconds",
+              "value": "={{ $json.headers['retry-after'] ? Number($json.headers['retry-after']) : ($json.headers['x-ratelimit-reset'] ? Math.max(1, Math.ceil(Number($json.headers['x-ratelimit-reset']) - $now.toSeconds())) : 60) }}",
+              "type": "number"
+            },
+            {
+              "id": "w2",
+              "name": "retry_count",
+              "value": "={{ $('Attempt Counter').item.json.retry_count }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "15060d32-017c-4a5c-9aa5-20f220743e38",
+      "name": "Compute Rate Limit Wait",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2240,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "amount": "={{ $json.waitSeconds }}"
+      },
+      "id": "633fe0a2-76c8-4324-baef-5d5fbf1fea7b",
+      "name": "Wait For Rate Limit",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2528,
+        192
+      ],
+      "webhookId": "d5d412bf-c5c8-4557-91bc-5ee2a49f8d21"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "high-value",
+              "leftValue": "={{ $json.body.followers > 5 || $json.body.public_repos > 20 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "26fabce8-5b52-474b-b4df-754e1cc8701d",
+      "name": "Is High-Value Lead?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2016,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "p1",
+              "name": "name",
+              "value": "={{ $json.body.name || $json.body.login }}",
+              "type": "string"
+            },
+            {
+              "id": "p2",
+              "name": "login",
+              "value": "={{ $json.body.login }}",
+              "type": "string"
+            },
+            {
+              "id": "p3",
+              "name": "followers",
+              "value": "={{ $json.body.followers }}",
+              "type": "number"
+            },
+            {
+              "id": "p4",
+              "name": "public_repos",
+              "value": "={{ $json.body.public_repos }}",
+              "type": "number"
+            },
+            {
+              "id": "p5",
+              "name": "company",
+              "value": "={{ $json.body.company || 'Not listed' }}",
+              "type": "string"
+            },
+            {
+              "id": "p6",
+              "name": "bio",
+              "value": "={{ $json.body.bio || 'Not listed' }}",
+              "type": "string"
+            },
+            {
+              "id": "p7",
+              "name": "profile_url",
+              "value": "={{ $json.body.html_url }}",
+              "type": "string"
+            },
+            {
+              "id": "p8",
+              "name": "repository",
+              "value": "={{ $('Extract Star Data').item.json.repository }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7cfdd45b-3467-4646-ad33-c98a657a7831",
+      "name": "Prepare Lead",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2240,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write exactly one concise, professional outreach insight, maximum 25 words.\n\nUse only the supplied public Company and Bio. Do not invent facts, infer sensitive attributes, claim that the person needs our product, or use manipulative language.\n\nIf both Company and Bio are unavailable or unhelpful, return exactly:\n“Thank them for their interest and invite feedback on the repository.”\n\nPublic profile:\nName: {{ $json.name }}\nGitHub username: {{ $json.login }}\nCompany: {{ $json.company }}\nBio: {{ $json.bio }}\nRepository starred: {{ $json.repository }}",
+        "batching": {}
+      },
+      "id": "835cf6b4-ace2-42d2-ad62-8ee7a8c1dd0a",
+      "name": "Generate Outreach Insight",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2464,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "63998c42-8aca-484d-ae11-721fad93a5a0",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        2544,
+        720
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GOMF1HQXryrQKvOr",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://discord.com/api/webhooks/1535852412722618458/A8X-rZ10exeJbYAT_7HHFszVl-onb-emX1VQH5cvbn4LXFt9JR4icmAbhAPwsF6m3ABh",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"username\": \"GitHub Lead Tracker\", \"allowed_mentions\": { \"parse\": [] }, \"embeds\": [ { \"title\": \"⭐ High-value GitHub lead\", \"color\": 5763719, \"url\": $('Prepare Lead').item.json.profile_url, \"fields\": [ { \"name\": \"Name\", \"value\": $('Prepare Lead').item.json.name + \" (@\" + $('Prepare Lead').item.json.login + \")\", \"inline\": false }, { \"name\": \"Repository starred\", \"value\": $('Prepare Lead').item.json.repository, \"inline\": false }, { \"name\": \"Followers / Public repos\", \"value\": $('Prepare Lead').item.json.followers + \" / \" + $('Prepare Lead').item.json.public_repos, \"inline\": true }, { \"name\": \"Company\", \"value\": $('Prepare Lead').item.json.company, \"inline\": true }, { \"name\": \"Bio\", \"value\": $('Prepare Lead').item.json.bio, \"inline\": false }, { \"name\": \"Suggested outreach\", \"value\": $json.text, \"inline\": false } ] } ] } }}",
+        "options": {}
+      },
+      "id": "04b0a737-d12e-4050-ad54-11f6b7a7e1c1",
+      "name": "Send Discord Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2816,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "30X5nCkBoNTsC2ni",
+          "cachedResultName": "github_star_data"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "delivery_id",
+              "keyValue": "={{ $('Extract Star Data').item.json.delivery_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "notified"
+          },
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "079672cd-bb9a-4437-b32d-63f0c5271636",
+      "name": "Mark Delivery Notified",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        3040,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "30X5nCkBoNTsC2ni",
+          "cachedResultName": "github_star_data"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "delivery_id",
+              "keyValue": "={{ $('Extract Star Data').item.json.delivery_id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "status": "not_qualified"
+          },
+          "schema": [
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "64d62fc8-4dd6-447a-890e-a4dc9c3f956c",
+      "name": "Mark Not Qualified",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Workflow Note\n\nThe workflow monitors a repository that I own. I have used a **GitHub webhook** rather than polling a public stargazer list because **GitHub has announced restrictions on public stargazer-list access** since July.\n\n**Source:** [GitHub Changelog — Upcoming access restrictions to public API endpoints and UI views](https://github.blog/changelog/2026-06-30-upcoming-access-restrictions-to-public-api-endpoints-and-ui-views/)",
+        "height": 256,
+        "width": 432
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -208,
+        -48
+      ],
+      "typeVersion": 1,
+      "id": "f1158fce-9f26-4cd6-85f7-de70afd6d72f",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "GitHub Star Webhook": {
+      "main": [
+        [
+          {
+            "node": "Is New Star?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New Star?": {
+      "main": [
+        [
+          {
+            "node": "Extract Star Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Star Data": {
+      "main": [
+        [
+          {
+            "node": "Find Duplicate Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Duplicate Delivery": {
+      "main": [
+        [
+          {
+            "node": "Is Not Duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Not Duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Save Processing Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Processing Delivery": {
+      "main": [
+        [
+          {
+            "node": "Attempt Counter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attempt Counter": {
+      "main": [
+        [
+          {
+            "node": "Get GitHub Profile",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get GitHub Profile": {
+      "main": [
+        [
+          {
+            "node": "Is Rate Limited?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Rate Limited?": {
+      "main": [
+        [
+          {
+            "node": "Retries Exhausted?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Is High-Value Lead?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retries Exhausted?": {
+      "main": [
+        [
+          {
+            "node": "Mark Rate Limited Failed",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Compute Rate Limit Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compute Rate Limit Wait": {
+      "main": [
+        [
+          {
+            "node": "Wait For Rate Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait For Rate Limit": {
+      "main": [
+        [
+          {
+            "node": "Attempt Counter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is High-Value Lead?": {
+      "main": [
+        [
+          {
+            "node": "Prepare Lead",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Not Qualified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Lead": {
+      "main": [
+        [
+          {
+            "node": "Generate Outreach Insight",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Outreach Insight": {
+      "main": [
+        [
+          {
+            "node": "Send Discord Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Outreach Insight",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Discord Alert": {
+      "main": [
+        [
+          {
+            "node": "Mark Delivery Notified",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e8cdf50c-6775-4266-96a5-f65f7ff5eee4",
+  "meta": {
+    "instanceId": "2c41a2f6ea8b471b90aa8864f3a6e29b3dd49e674a7d610a681fd4a682ee0571"
+  },
+  "nodeGroups": [],
+  "id": "AxiHnZ3rLhZwX6q1",
+  "tags": []
+}
